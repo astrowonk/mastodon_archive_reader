@@ -3,9 +3,9 @@ The archive_reader.py script (or the `ArchiveReader` class within) reads in your
 
 The database holds two tables and one view: 
 
-    * `search_data`. This is a virtual table created with FTS5 that allows for full text search of your posts.
-    * `full_data`. This is every column from the archive that contains an `object_id` 
-    * `combined`. This is a view that combines the two tables above on extracted integer post id column
+* `search_data`. This is a virtual table created with FTS5 that allows for full text search of your posts.
+* `full_data`. This is every column from the archive that contains an `object_id` 
+* `combined`. This is a view that combines the two tables above on extracted integer. post id column
 
 Creating the sqlite database requires pandas and [html2text](https://pypi.org/project/html2text/).
 
