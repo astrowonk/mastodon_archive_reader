@@ -1,0 +1,5 @@
+myarchive
+*.ipynb
+*.db
+__pycache__
+records
