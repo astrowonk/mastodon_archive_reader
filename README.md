@@ -35,3 +35,4 @@ will launch a simple plotly dash app to search your archive.
 ### TODO
 
 * Figure out the list of dictionaries in the `attachments` portion of the JSON file and embed media attachments in the Dash app.
+* Add some advanced search to the dash app such as supporting date range.
