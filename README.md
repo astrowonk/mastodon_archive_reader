@@ -29,6 +29,7 @@ python app.py
 
 will launch a simple plotly dash app to search your archive.
 
+<img width="1408" alt="Screenshot of the plotly Dash app in use returning some search results." src="https://user-images.githubusercontent.com/13702392/221355745-ece59b4a-399c-4262-bdd0-c97bd44f5102.png">
 
 
 ### TODO
