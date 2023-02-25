@@ -91,7 +91,7 @@ main_tab = dbc.Tab([
     ]),
     dbc.Spinner(html.Div(id='output')),
 ],
-                   label="Reader",
+                   label="Archive Reader",
                    tab_id='reader-tab')
 
 settings_tab = dbc.Tab(label="Settings", style=STYLE)

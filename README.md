@@ -36,4 +36,5 @@ will launch a simple plotly dash app to search your archive.
 
 * Figure out the list of dictionaries in the `attachments` portion of the JSON file and embed media attachments in the Dash app.
 * Add some advanced search to the dash app such as supporting date range.
-* Add Pagination
+* Add Pagination of results (maybe, that's some work...)
+* Re-do UI to separate advanced sql searches from full text search (and whatever date etc params I add)
