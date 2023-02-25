@@ -14,6 +14,8 @@ class ArchiveReader():
             self.df = pd.json_normalize(
                 myjson['orderedItems'],
                 sep='_').dropna(subset=['object_content', 'object_id'])
+        with open('config.py', 'w') as f:
+            f.write(f"archive_dir = '{dir_name}'\n")
         print("Loaded JSON")
         self.text_maker = HTML2Text()
         self.text_maker.ignore_links = True
@@ -27,6 +29,10 @@ class ArchiveReader():
         return clean_text
 
     @staticmethod
+    def process_attachments(theList):
+        return ','.join([x['url'] for x in theList])
+
+    @staticmethod
     def get_id(url):
         return int(urlparse(url).path.rpartition('/')[-1])
 
@@ -37,6 +43,8 @@ class ArchiveReader():
             self.clean_text, na_action='ignore')
         self.df['int_id'] = self.df['object_id'].map(self.get_id,
                                                      na_action='ignore')
+        self.df['attachment_urls'] = self.df['object_attachment'].map(
+            self.process_attachments, na_action='ignore')
 
     def save_to_sql(self):
         print("Creating table")
@@ -51,9 +59,20 @@ class ArchiveReader():
                                                    if_exists='append',
                                                    index=False)
         self.df.drop(columns=[
-            'text_content', 'to', 'cc', 'object_to', 'object_cc', '@context',
-            'object_attachment', 'object_tag', 'object_replies_first_items'
-        ]).to_sql('full_data', con=con, if_exists='replace', index=False)
+            'text_content',
+            'to',
+            'cc',
+            'object_to',
+            'object_cc',
+            '@context',
+            'object_tag',
+            'object_replies_first_items',
+            'object_attachment',
+        ],
+                     errors='ignore').to_sql('full_data',
+                                             con=con,
+                                             if_exists='replace',
+                                             index=False)
         with sqlite3.connect('main.db') as con:
             con.execute(
                 "CREATE INDEX IF NOT EXISTS full_data_post_id on full_data(int_id);"
@@ -61,7 +80,10 @@ class ArchiveReader():
             con.execute(
                 'CREATE VIEW IF NOT EXISTS combined as select text_content,fd.* from search_data sd left join full_data fd on fd.int_id = sd.int_id;'
             )
-        print("Success")
+            out = con.execute(
+                "select count(*) as total_count from full_data;").fetchone()
+        print(f"Successfully processed {out[0]} posts.")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

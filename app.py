@@ -11,6 +11,11 @@ from functools import partial
 
 from pathlib import Path
 
+try:
+    from config import archive_dir
+except ImportError:
+    archive_dir = 'assets'
+
 
 def my_escape_fts(search):
     search = search.replace("‘", "'").replace("’", "'")
@@ -47,11 +52,14 @@ STYLE_BANNER = {
 with open("about.md", "r") as myfile:
     about_markdown = myfile.read()
 
-app = Dash(__name__,
-           external_stylesheets=[dbc.themes.COSMO, dbc.icons.BOOTSTRAP],
-           url_base_pathname=url_base_path_name,
-           title="Mastodon Archive Search",
-           suppress_callback_exceptions=True)
+app = Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.COSMO, dbc.icons.BOOTSTRAP],
+    url_base_pathname=url_base_path_name,
+    title="Mastodon Archive Search",
+    suppress_callback_exceptions=True,
+    assets_folder=archive_dir,
+)
 server = app.server
 button_class = 'me-1'
 
@@ -63,8 +71,23 @@ main_tab = dbc.Tab([
             id='search-input',
             value='',
             debounce=True,
-            placeholder='For exact phrase use double quotes',
+            placeholder='Full Text Search. For exact phrase use double quotes',
         ),
+        dbc.Button("Search")
+    ]),
+    html.Hr(),
+    dbc.InputGroup([
+        dbc.InputGroupText(
+            html.I(className="bi bi-search", style={'float': 'left'})),
+        dbc.Textarea(
+            id='sql-input',
+            value='',
+            persistence=True,
+            debounce=True,
+            placeholder=
+            'Full Database SQL Search, best to query or join with full_data for all fields.',
+        ),
+        dbc.Button("Run SQL")
     ]),
     dbc.Spinner(html.Div(id='output')),
 ],
@@ -104,6 +127,17 @@ def make_card(row, host):
             dbc.CardLink("Permalink", href=row['object_url'], target='_blank')
         ]),
     ]
+    if the_urls := row['attachment_urls']:
+        for url in the_urls.split(','):
+            card_content.append(
+                dbc.CardImg(src=app.get_asset_url(url[1:]),
+                            top=True,
+                            style={
+                                'height': '15vw',
+                                'width': '100%',
+                                'object-fit': 'scale-down'
+                            }))
+
     return dbc.Card(card_content,
                     style={
                         'margin-bottom': '2em',
@@ -111,19 +145,29 @@ def make_card(row, host):
                     className="w-85 mb-3")
 
 
-@app.callback(Output('output', 'children'), Input('search-input', 'value'))
-def update_output(search):
+@app.callback(Output('output', 'children'), Input('search-input', 'value'),
+              Input('sql-input', 'value'))
+def update_output(search, sql):
     """Gets the data from local storage and actually makes the web site"""
 
-    if not search:
+    thecontext = callback_context.triggered[0]['prop_id'].split('.')[0]
+    print(thecontext)
+
+    if thecontext == 'search-input' and search:
+        with sqlite3.connect('main.db') as con:
+            df = pd.read_sql(
+                f"select bm25(search_data) as score, text_content,fd.* from search_data sd left join full_data fd on fd.int_id = sd.int_id where text_content match ? order by score ",
+                con=con,
+                params=[
+                    my_escape_fts(search),
+                ])
+    elif thecontext == 'sql-input' and sql:
+        with sqlite3.connect('file:main.db?mode=ro', uri=True) as con:
+            df = pd.read_sql(sql, con=con)
+            df['score'] = 0
+
+    if not (search or sql):
         raise PreventUpdate
-    with sqlite3.connect('main.db') as con:
-        df = pd.read_sql(
-            f"select bm25(search_data) as score, text_content,fd.* from search_data sd left join full_data fd on fd.int_id = sd.int_id where text_content match ? order by score ",
-            con=con,
-            params=[
-                my_escape_fts(search),
-            ])
 
     if df.empty:
         return html.H4("No Results", style=STYLE)
